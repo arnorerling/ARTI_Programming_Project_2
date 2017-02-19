@@ -8,7 +8,7 @@ public class SmartAgent implements Agent
 	private int width, height; // dimensions of the board
 	private Node rootnode;
 	private boolean isWhite;
-	/*
+	/* irssi
 		init(String role, int playclock) is called once before you have to select the first action. Use it to initialize the agent. role is either "white" or "black" and playclock is the number of seconds after which nextAction must return.
 	*/
     public void init(String role, int width, int height, int playclock) {
@@ -23,17 +23,18 @@ public class SmartAgent implements Agent
 		// intiializes all points of blacks and whites
 		ArrayList<Point> white = new ArrayList<Point>();
 		ArrayList<Point> black = new ArrayList<Point>();
-		for(int i = 1; i <= width; i++) {
-			white.add(new Point(i,1));
-			white.add(new Point(i,2));
-			black.add(new Point(i,height));
-			black.add(new Point(i,height-1));
+		boolean[] whitesbool = new boolean[width * height];
+		boolean[] blacksbool = new boolean[width * height];
+		for(int i = 0; i < width; i++) {
+			whitesbool[i] = true;
+			whitesbool[i + width] = true;
+			blacksbool[i + (width * (height-1))] = true;
+			blacksbool[i + ((width) * (height-2))] = true;
 		}
-
-
 		// pass in true because whiteplaying starts as true
-		this.rootnode = new Node(null, 0, Integer.MIN_VALUE, Integer.MAX_VALUE, null, new BoardState(width, height, white, black, true));
-		
+		System.out.println("init1");
+		this.rootnode = new Node(null, 0, null, new BoardState(width, height, whitesbool, blacksbool, true));
+		System.out.println("init2");
     }
 
 	// lastMove is null the first time nextAction gets called (in the initial state)
@@ -41,6 +42,9 @@ public class SmartAgent implements Agent
     public String nextAction(int[] lastMove) {
 
     	System.out.println("NEXT ACTION------------------");
+
+    	long timeTillReturn = System.currentTimeMillis() + (playclock * 1000); // playclock is in seconds so * 1000 for milliseconds.
+
 
     	if (lastMove != null && !myTurn) {
     		int x1 = lastMove[0], y1 = lastMove[1], x2 = lastMove[2], y2 = lastMove[3];
@@ -76,19 +80,37 @@ public class SmartAgent implements Agent
     				break;
     			}
     		}
+			asciiWorld(this.rootnode.state);
 
     		System.out.println(this.rootnode);
     	}
 		
     	// update turn (above that line it myTurn is still for the previous state)
-    	
+	
 		myTurn = !myTurn;
 		if (myTurn) {
 			// TODO: 2. run alpha-beta search to determine the best move
+			
+			//for(int i = 1; i < 5; i++) {
+
+			int currentDepth = 1;
 			int[] moveToTake = new int[4];
 			Node nextRoot = null;
-			//for(int i = 1; i < 5; i++) {
-				this.rootnode.value = AlphaBeta(this.rootnode, 8, Integer.MIN_VALUE+1, Integer.MAX_VALUE-1, isWhite);
+			long currentTime = System.currentTimeMillis();
+			long lastRunTime = 0;
+			
+			while(true) {
+				//System.out.println("TIME LEFT: " + (timeTillReturn - currentTime));
+				if((timeTillReturn - currentTime) < (lastRunTime * 2) || currentDepth > 8) {// if have more time than what last iteration took * 2 just quit out.
+					System.out.println("iterative deepening stopped at depth " + currentDepth);
+					break;
+				} 
+				this.rootnode.value = AlphaBeta(this.rootnode, currentDepth, Integer.MIN_VALUE+1, Integer.MAX_VALUE-1, isWhite);
+				
+
+				lastRunTime = System.currentTimeMillis() - currentTime;
+				//System.out.println("FINISHED A ITERATION IN ITERATIVE DEEPENING D: "+currentDepth);
+				//System.out.println("LAST RUNTIME: " + lastRunTime);
 				for(Node child : this.rootnode.children) {
 					//System.out.println("child value is " + child.value);
 					if(child.value == this.rootnode.value) {
@@ -97,14 +119,18 @@ public class SmartAgent implements Agent
 						break;
 					}
 				}
-			//}
+				currentDepth += 1;
+				currentTime = System.currentTimeMillis();
+			}
+			
+			
+				
 				System.out.println(this.rootnode.value);
 				this.rootnode = nextRoot;
 			System.out.println("Value found was: " + this.rootnode.value);
-			asciiWorld(this.rootnode.state);
 			return "(move "+moveToTake[0]+" "+moveToTake[1]+" "+moveToTake[2]+" "+moveToTake[3]+")";
 		} else {
-			//asciiWorld(this.rootnode.state);
+			asciiWorld(this.rootnode.state);
 			return "noop";
 		}
 	}
@@ -205,14 +231,14 @@ public class SmartAgent implements Agent
 
 		for(int i = height; i > 0; i--) {
 
-			for(int j = 1; j <= width; j++) {
+			for(int j = 0; j < width; j++) {
 
-				if(state.whites.contains(new Point(j, i))) {
+				if(state.whitesbool[j+((i-1)* this.width)]) {
 					System.out.print("W");
 					continue;
 				}
 
-				if(state.blacks.contains(new Point(j, i))) {
+				if(state.blacksbool[j+((i-1)* this.width)]) {
 					System.out.print("B");
 					continue;
 				}
