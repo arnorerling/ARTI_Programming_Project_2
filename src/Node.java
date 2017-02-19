@@ -5,18 +5,14 @@ public class Node {
 
 	Node parent;
 	int value;
-	int alpha;
-	int beta;
 	int[] moveTo;
 	BoardState state;
 	Node[] children;
 	Boolean alreadyExpanded;
 
-	public Node (Node _parent, int _value, int _alpha, int _beta, int[] _moveTo, BoardState _state) {
+	public Node (Node _parent, int _value, int[] _moveTo, BoardState _state) {
 		this.parent = _parent;
 		this.value = _value;
-		this.alpha = _alpha;
-		this.beta = _beta;
 		this.moveTo = _moveTo;
 		this.state = _state;
 		this.alreadyExpanded = false;
@@ -28,10 +24,10 @@ public class Node {
 			return;
 		}
 		alreadyExpanded = true;
-		ArrayList<int[]> legalMoves = this.state.legalMoves();
+		ArrayList<int[]> legalMoves = this.state.legalMoves;
 		this.children = new Node[legalMoves.size()];
 		for(int i = 0; i < legalMoves.size(); i++) {
-			children[i] = new Node(this, 0, this.alpha, this.beta, legalMoves.get(i), this.state.executeMove(legalMoves.get(i)));
+			children[i] = new Node(this, 0, legalMoves.get(i), this.state.executeMove(legalMoves.get(i)));
 		}
 		return;
 	}
