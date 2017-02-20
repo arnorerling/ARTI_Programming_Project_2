@@ -5,22 +5,25 @@ import java.util.Arrays;
 
 public class BoardState {
 
-	public int height;
-	public int width;
+	public static int height;
+	public static int width;
+	public static int numGenerated = 0;
+
 	public boolean[] whitesbool;
 	public boolean[] blacksbool;
-	public ArrayList<int[]> legalMoves;
+	//public ArrayList<int[]> legalMoves;
+	public int evaluation;
+	private int numLegalMoves = 0;
 
-	public ArrayList<Point> blacks;
 	public boolean whitePlaying;
 
-	public BoardState(int _width, int _height, boolean[] _whitesbool, boolean[] _blacksbool, boolean _whitePlaying ) {
-		this.width = _width;
-		this.height = _height;
+	public BoardState(boolean[] _whitesbool, boolean[] _blacksbool, boolean _whitePlaying ) {
 		this.whitesbool = _whitesbool;
 		this.blacksbool = _blacksbool;
 		this.whitePlaying = _whitePlaying;
-		this.legalMoves = this.legalMoves();
+		//this.legalMoves = this.legalMoves();
+		this.evaluation = this.evaluate();
+		BoardState.numGenerated += 1;
 		return;
 	}
 
@@ -49,9 +52,12 @@ public class BoardState {
 	public ArrayList<int[]> legalMoves() {
 
 		ArrayList<int[]> legalMoves = new ArrayList<int[]>();
+		int y;
+		int x;
+
 		if(this.whitePlaying) {
-			for(int y = 0; y < this.height-1; y++) { // only go up to height - 2 to not calculate moves for whites on toprow
-				for(int x = 0; x < this.width; x++) {
+			for(y = 0; y < this.height-1; y++) { // only go up to height - 2 to not calculate moves for whites on toprow
+				for(x = 0; x < this.width; x++) {
 					if(whitesbool[x+(y*this.width)] == false) {
 						continue;
 					}
@@ -91,8 +97,8 @@ public class BoardState {
 		}
 
 		else{
-			for(int y = 1; y < this.height; y++) { // start at 1 to not calculate moves for blacks in the bottom row
-				for(int x = 0; x < this.width; x++) {
+			for(y = 1; y < this.height; y++) { // start at 1 to not calculate moves for blacks in the bottom row
+				for(x = 0; x < this.width; x++) {
 					if(blacksbool[x+(y*this.width)] == false) {
 						continue;
 					}
@@ -156,7 +162,7 @@ public class BoardState {
 			newBlacksBool[posTo] = true;
 			newBlacksBool[posFrom] = false;
 		}
-		return new BoardState(width, height, newWhitesBool, newBlacksBool, !whitePlaying);
+		return new BoardState(newWhitesBool, newBlacksBool, !whitePlaying);
 	}
 
 
@@ -238,7 +244,23 @@ public class BoardState {
 
 			}
 		}
+		if(whitePlaying != other.whitePlaying) {
+			return false;
+		}
+
 		return true;
+	}
+
+	@Override
+	public int hashCode() {
+		// we pick a prime at random
+		int prime = 10007;
+		long hash = Arrays.hashCode(whitesbool) * (prime*prime) + Arrays.hashCode(blacksbool) * prime;
+		if(whitePlaying) {
+			hash += 1;
+		}
+
+		return (int) (hash % Integer.MAX_VALUE);
 	}
 
 	public String toString() {

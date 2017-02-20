@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 public class SmartAgent implements Agent
 {
 
@@ -6,8 +7,9 @@ public class SmartAgent implements Agent
 	private int playclock; // this is how much time (in seconds) we have before nextAction needs to return a move
 	private boolean myTurn; // whether it is this agent's turn or not
 	private int width, height; // dimensions of the board
-	private Node rootnode;
+	private Node rootNode;
 	private boolean isWhite;
+	private int cutoffTime;
 	/* irssi
 		init(String role, int playclock) is called once before you have to select the first action. Use it to initialize the agent. role is either "white" or "black" and playclock is the number of seconds after which nextAction must return.
 	*/
@@ -18,6 +20,10 @@ public class SmartAgent implements Agent
 		isWhite = role.equals("white");
 		this.width = width;
 		this.height = height;
+		BoardState.width = width;
+		BoardState.height = height;
+		Node.stateChildren = new HashMap<BoardState, Node[]>();
+		cutoffTime = (int)(playclock * 1000 * 0.2);
 		// TODO: add your own initialization code here
 
 		// intiializes all points of blacks and whites
@@ -33,7 +39,7 @@ public class SmartAgent implements Agent
 		}
 		// pass in true because whiteplaying starts as true
 		System.out.println("init1");
-		this.rootnode = new Node(null, 0, null, new BoardState(width, height, whitesbool, blacksbool, true));
+		this.rootNode = new Node(0, null, new BoardState(whitesbool, blacksbool, true));
 		System.out.println("init2");
     }
 
@@ -43,7 +49,7 @@ public class SmartAgent implements Agent
 
     	System.out.println("NEXT ACTION------------------");
 
-    	long timeTillReturn = System.currentTimeMillis() + (playclock * 1000); // playclock is in seconds so * 1000 for milliseconds.
+    	long timeTilReturn = System.currentTimeMillis() + (playclock * 1000); // playclock is in seconds so * 1000 for milliseconds.
 
 
     	if (lastMove != null && !myTurn) {
@@ -57,32 +63,32 @@ public class SmartAgent implements Agent
    			System.out.println(roleOfLastPlayer + " moved from " + x1 + "," + y1 + " to " + x2 + "," + y2);
     		// TODO: 1. update your internal world model according to the action that was just executed
     		
-    		this.rootnode.expandChildren();
-    		BoardState temp = this.rootnode.state.executeMove(lastMove);
-    		//System.out.println(this.rootnode);
+    		this.rootNode.expandChildren();
+    		BoardState temp = this.rootNode.state.executeMove(lastMove);
+    		//System.out.println(this.rootNode);
     		// System.out.println("lastmove map");
     		// asciiWorld(temp);
     		// System.out.println("");
-    		// System.out.println("rootnode");
-    		// asciiWorld(this.rootnode.state);
+    		// System.out.println("rootNode");
+    		// asciiWorld(this.rootNode.state);
     		// System.out.println("");
 
     		if(temp == null) {
     			System.out.println("temp became null");
     		}
 
-    		for(Node child: this.rootnode.children)
+    		for(Node child: this.rootNode.children)
     		{
     			if(child.state.equals(temp)){
-    				this.rootnode = child;
+    				this.rootNode = child;
     				System.out.println("assigned new root after other played moved");
-    				this.rootnode.parent = null;
+    				//this.rootNode.parent = null;
     				break;
     			}
     		}
-			asciiWorld(this.rootnode.state);
+			asciiWorld(this.rootNode.state);
 
-    		System.out.println(this.rootnode);
+    		System.out.println(this.rootNode);
     	}
 		
     	// update turn (above that line it myTurn is still for the previous state)
@@ -93,102 +99,66 @@ public class SmartAgent implements Agent
 			
 			//for(int i = 1; i < 5; i++) {
 
-			int currentDepth = 1;
 			int[] moveToTake = new int[4];
-			Node nextRoot = null;
 			long currentTime = System.currentTimeMillis();
-			long lastRunTime = 0;
-			
-			while(true) {
-				//System.out.println("TIME LEFT: " + (timeTillReturn - currentTime));
-				if((timeTillReturn - currentTime) < (lastRunTime * 2) || currentDepth > 8) {// if have more time than what last iteration took * 2 just quit out.
-					System.out.println("iterative deepening stopped at depth " + currentDepth);
-					break;
-				} 
-				this.rootnode.value = AlphaBeta(this.rootnode, currentDepth, Integer.MIN_VALUE+1, Integer.MAX_VALUE-1, isWhite);
-				
+			AlphaBetaThread abt = new AlphaBetaThread(this.rootNode, isWhite);
+			Thread t = new Thread(abt);
 
-				lastRunTime = System.currentTimeMillis() - currentTime;
-				//System.out.println("FINISHED A ITERATION IN ITERATIVE DEEPENING D: "+currentDepth);
-				//System.out.println("LAST RUNTIME: " + lastRunTime);
-				for(Node child : this.rootnode.children) {
-					//System.out.println("child value is " + child.value);
-					if(child.value == this.rootnode.value) {
-						moveToTake = child.moveTo;
-						nextRoot = child;
+			t.start();
+			while(currentTime + cutoffTime < timeTilReturn) {
+
+				try {
+					
+					Thread.sleep(500);
+					if(abt.isDead()) {
 						break;
 					}
+
+				}catch(InterruptedException e) {
+					// Someone woke us up during sleep, that's OK
+				} catch(Exception e) {
+					System.out.println("Caught an exception we weren't expecting: " + e.getClass().getCanonicalName());
+					e.printStackTrace();
 				}
-				currentDepth += 1;
+
 				currentTime = System.currentTimeMillis();
 			}
-			
-			
+			t.interrupt();
+
+			try {
+				t.join(1);
+			} catch(InterruptedException e) {
+				System.out.println("interruption during join");
+			}
 				
-				System.out.println(this.rootnode.value);
-				this.rootnode = nextRoot;
-			System.out.println("Value found was: " + this.rootnode.value);
+			if(abt.getNextRoot() == null) {
+				System.out.println("nextRoot became null");
+			}
+				
+			System.out.println(this.rootNode.value);
+			this.rootNode = abt.getNextRoot();
+			moveToTake = this.rootNode.moveTo;
+
+			//this.rootNode.parent = null;
+			System.out.println("Value found was: " + this.rootNode.value);
+			System.out.println("States Generated: " + abt.getStatesGenerated());
+			System.out.println("States Examined: " + abt.getStatesExamined());
+			System.out.println("Nodes Generated: " + BoardState.numGenerated);
+			System.out.println("HashMap size: " + Node.stateChildren.size());
+
+			t = null;
+			abt = null;
+			Node.stateChildren.clear();
+
 			return "(move "+moveToTake[0]+" "+moveToTake[1]+" "+moveToTake[2]+" "+moveToTake[3]+")";
+
 		} else {
-			asciiWorld(this.rootnode.state);
+			asciiWorld(this.rootNode.state);
 			return "noop";
 		}
 	}
 
-	public int AlphaBeta(Node n, int depth, int alpha, int beta, boolean maxPlayer) {
-
-		if(depth == 0 || n.state.isGoal()) {
-
-			if(!maxPlayer) {
-				return n.state.evaluate();
-			} else {
-				return n.state.evaluate();
-			}
-		}
-
-		int v;
-
-		if(maxPlayer) {
-
-			//System.out.println("maxplayer");
-
-			v = Integer.MIN_VALUE + 10;
-			n.expandChildren();
-
-			for(Node s : n.children) {
-
-				s.value = AlphaBeta(s, depth-1, alpha, beta, false);
-				//System.out.println(s);
-				v = Math.max(v, s.value);
-				alpha = Math.max(alpha, s.value);
-
-				if(beta <= alpha) {
-					break;
-				}
-			}
-
-		} else {
-
-			//System.out.println("minplayer");
-
-			v = Integer.MAX_VALUE-10;
-			n.expandChildren();
-
-			for(Node s : n.children) {
-
-				s.value = AlphaBeta(s, depth-1, alpha, beta, true);
-				//System.out.println(s);
-				v = Math.min(v, s.value);
-				beta = Math.min(beta, v);
-
-				if(beta <= alpha) {
-					break;
-				}
-			}
-		}
-
-		return v;
-	}
+	
 
 	// public int AlphaBeta(int depth, Node n, int alpha, int beta) {
 
@@ -257,3 +227,4 @@ public class SmartAgent implements Agent
 	}
 
 }
+
