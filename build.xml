@@ -75,8 +75,9 @@ if you need -Xlint=unchecked (in target build) or -Xmx500m (in target run), unco
 		<java jar="${dist}/${projectname}.jar" fork="true">
 			<!--
 				add this line to be able to give a port as a command line argument with -Dport=1234
-				 <arg value="${port}"/>
+				 
 			 -->
+			 <arg value="${port}"/>
 			<jvmarg value="-Xmx500m" />
 		</java>	
 		<antcall target="clean" />

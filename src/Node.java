@@ -2,7 +2,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class Node {
+public class Node implements Comparable {
 
 	public static HashMap<BoardState, Node[]> stateChildren;
 
@@ -43,6 +43,13 @@ public class Node {
 		}
 
 		return true;
+	}
+
+	@Override
+	public int compareTo(Object obj) {
+		Node other = (Node) obj;
+
+		return Integer.compare(this.state.evaluation, other.state.evaluation);
 	}
 
 	public String toString() {

@@ -5,15 +5,12 @@ import java.util.Arrays;
 
 public class BoardState {
 
-	public static int height;
-	public static int width;
 	public static int numGenerated = 0;
 
 	public boolean[] whitesbool;
 	public boolean[] blacksbool;
 	//public ArrayList<int[]> legalMoves;
 	public int evaluation;
-	private int numLegalMoves = 0;
 
 	public boolean whitePlaying;
 
@@ -27,25 +24,38 @@ public class BoardState {
 		return;
 	}
 
-	/*public BoardState(BoardState _state) {
-		this.width = _state.width;
-		this.height = _state.height;
-		//this.whites = copyArrayList(whites);
-		//this.blacks = copyArrayList(blacks);
+	public boolean isGoal() {
+		return (whiteWinState() || blackWinState() || !hasMoves());
+	}
 
-		this.whitePlaying = _state.whitePlaying;
-	}*/
+	public boolean whiteWinState() {
 
-	public Boolean isGoal() {
-		for(int x = 0; x < this.width; x++) {
-			if(whitesbool[x+(this.width*(this.height-1))] || blacksbool[x]) {
+		for(int x = 0; x < SmartAgent.width; x++) {
+			if(whitesbool[x+(SmartAgent.width*(SmartAgent.height-1))]) {
 				return true;
 			}
 		}
-		if(legalMoves().size() == 0){
+
+		return false;
+	}
+
+	public boolean blackWinState() {
+
+		for(int x = 0; x < SmartAgent.width; x++) {
+			if(blacksbool[x]) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	public boolean hasMoves() {
+
+		if(legalMoves().size() > 0){
 			 return true;
 		}
-		
+
 		return false;
 	}
 
@@ -56,12 +66,12 @@ public class BoardState {
 		int x;
 
 		if(this.whitePlaying) {
-			for(y = 0; y < this.height-1; y++) { // only go up to height - 2 to not calculate moves for whites on toprow
-				for(x = 0; x < this.width; x++) {
-					if(whitesbool[x+(y*this.width)] == false) {
+			for(y = 0; y < SmartAgent.height-1; y++) { // only go up to height - 2 to not calculate moves for whites on toprow
+				for(x = 0; x < SmartAgent.width; x++) {
+					if(whitesbool[x+(y*SmartAgent.width)] == false) {
 						continue;
 					}
-					if(!blacksbool[x+((y+1)*this.width)] && !whitesbool[x+((y+1)*this.width)]) {
+					if(!blacksbool[x+((y+1)*SmartAgent.width)] && !whitesbool[x+((y+1)*SmartAgent.width)]) {
 						int[] move = new int[4];
 						move[0] = x+1;
 						move[1] = y+1;
@@ -70,8 +80,8 @@ public class BoardState {
 						legalMoves.add(move);
 					}
 
-					if(x != this.width-1) {
-						if(blacksbool[(x+1)+((y+1) * this.width)]) {
+					if(x != SmartAgent.width-1) {
+						if(blacksbool[(x+1)+((y+1) * SmartAgent.width)]) {
 							int[] move = new int[4];
 							move[0] = x+1;
 							move[1] = y+1;
@@ -82,7 +92,7 @@ public class BoardState {
 					}
 
 					if(x!= 0) {
-						if(blacksbool[(x-1)+((y+1) * this.width)]) {
+						if(blacksbool[(x-1)+((y+1) * SmartAgent.width)]) {
 							int[] move = new int[4];
 							move[0] = x+1;
 							move[1] = y+1;
@@ -97,12 +107,12 @@ public class BoardState {
 		}
 
 		else{
-			for(y = 1; y < this.height; y++) { // start at 1 to not calculate moves for blacks in the bottom row
-				for(x = 0; x < this.width; x++) {
-					if(blacksbool[x+(y*this.width)] == false) {
+			for(y = 1; y < SmartAgent.height; y++) { // start at 1 to not calculate moves for blacks in the bottom row
+				for(x = 0; x < SmartAgent.width; x++) {
+					if(blacksbool[x+(y*SmartAgent.width)] == false) {
 						continue;
 					}
-					if(!blacksbool[x+((y-1)*this.width)] && !whitesbool[x+((y-1)*this.width)]) {
+					if(!blacksbool[x+((y-1)*SmartAgent.width)] && !whitesbool[x+((y-1)*SmartAgent.width)]) {
 						int[] move = new int[4];
 						move[0] = x+1;
 						move[1] = y+1;
@@ -110,8 +120,8 @@ public class BoardState {
 						move[3] = y;
 						legalMoves.add(move);
 					}
-					if(x != this.width-1) {
-						if(whitesbool[(x+1)+((y-1) * this.width)]) {
+					if(x != SmartAgent.width-1) {
+						if(whitesbool[(x+1)+((y-1) * SmartAgent.width)]) {
 							int[] move = new int[4];
 							move[0] = x+1;
 							move[1] = y+1;
@@ -121,7 +131,7 @@ public class BoardState {
 						}
 					}
 					if(x != 0) {
-						if(whitesbool[(x-1)+((y-1) * this.width)]) {
+						if(whitesbool[(x-1)+((y-1) * SmartAgent.width)]) {
 							int[] move = new int[4];
 							move[0] = x+1;
 							move[1] = y+1;
@@ -142,8 +152,8 @@ public class BoardState {
 		boolean[] newWhitesBool = Arrays.copyOf(this.whitesbool, this.whitesbool.length);
 		boolean[] newBlacksBool = Arrays.copyOf(this.blacksbool, this.blacksbool.length);
 
-		int posFrom = (move[0]-1) + ((move[1]-1) * this.width);
-		int posTo = (move[2]-1) + ((move[3]-1) * this.width);
+		int posFrom = (move[0]-1) + ((move[1]-1) * SmartAgent.width);
+		int posTo = (move[2]-1) + ((move[3]-1) * SmartAgent.width);
 
 		if(whitePlaying) {
 			//System.out.println("blacks before possible remove " + newBlacks.size());
@@ -165,61 +175,159 @@ public class BoardState {
 		return new BoardState(newWhitesBool, newBlacksBool, !whitePlaying);
 	}
 
+	public int evaluate() {
 
-	public int evaluate(){
-		int distOfMostAdvancedWhite = this.height;
-		int distOfMostAdvancedBlack = 0;
-		int onWinState = 0;
-
-		boolean foundPawn = false;
-
-		for(int y = this.height-1; y > 0; y--) { // 
-
-				for(int x = 0; x < this.width; x++) {
-
-					if(this.whitesbool[x+(y*this.width)] == true) {
-
-						if(y == this.height-1) {
-							//onWinState = 100;
-						}
-
-						distOfMostAdvancedWhite = this.height - y - 1;
-						foundPawn = true;
-						break;
-
-					}
-				}
-
-				if(foundPawn) {
-					break;
-				}
-
-			}
-
-		foundPawn = false;
-
-		for(int y = 0; y < this.height-2; y++) {
-			for(int x = 0; x < this.width; x++) {
-				if(this.blacksbool[x+(y*this.width)] == true) {
-					if(y == 0) {
-						//onWinState = 100;
-					}
-					distOfMostAdvancedBlack = y;
-					foundPawn = true;
-					break;
-				}
-			}
-			if(foundPawn) {
-				break;
-			}
+		if(whiteWinState()) {
+			return SmartAgent.winBonus;
 		}
 
-		// System.out.println("size of whites is " + whites.size());
-		// System.out.println("size of blacks is " + blacks.size());
-		// System.out.println("distOfMostAdvancedWhite is " + distOfMostAdvancedWhite);
-		// System.out.println("distOfMostAdvancedBlack is " + distOfMostAdvancedBlack);
+		if(blackWinState()) {
+			return -SmartAgent.winBonus;
+		}
 
-		return 50 - distOfMostAdvancedWhite + distOfMostAdvancedBlack + onWinState;
+		int numWhite = 0;
+		int placementWhite = 0;
+		int safeWhite = 0;
+		int breakawayWhite = 0;
+		int numBlack = 0;
+		int placementBlack = 0;
+		int safeBlack = 0;
+		int breakawayBlack = 0;
+
+		// examine white perspective
+		for(int y = SmartAgent.height-1; y >= 0; y--) { // 
+
+			for(int x = 0; x < SmartAgent.width; x++) {
+
+				int index = x+(y*SmartAgent.width);
+
+				if(this.whitesbool[index] == true) {
+					numWhite += SmartAgent.existenceBonus;
+					placementWhite += SmartAgent.cellScores.get(SmartAgent.columnTypes[x])[y];
+
+					int safe = SmartAgent.cellScores.get(SmartAgent.columnTypes[x])[y] / 2;
+					
+					if(isFoe(x-1, y+1, blacksbool) || isFoe(x+1, y+1, blacksbool)) {
+						safe = 0;
+					}
+
+					safeWhite += safe;
+
+					// we check for a "breakaway", 2x3 rectangle in front of the piece, and give a bonus for that
+					int breakaway = 0;
+
+					if(emptyOrFriend(x-1, y+1, whitesbool, blacksbool)) {
+						breakaway += 1;
+					}
+					if(emptyOrFriend(x, y+1, whitesbool, blacksbool)) {
+						breakaway += 1;
+					}
+					if(emptyOrFriend(x+1, y+1, whitesbool, blacksbool)) {
+						breakaway += 1;
+					}
+					if(emptyOrFriend(x-1, y+2, whitesbool, blacksbool)) {
+						breakaway += 1;
+					}
+					if(emptyOrFriend(x, y+2, whitesbool, blacksbool)) {
+						breakaway += 1;
+					}
+					if(emptyOrFriend(x+1, y+2, whitesbool, blacksbool)) {
+						breakaway += 1;
+					}
+
+					breakawayWhite += breakaway * SmartAgent.cellScores.get(SmartAgent.columnTypes[x])[y];
+				}
+
+
+
+			}
+
+		}
+
+		// examine black perspective
+		for(int y = SmartAgent.height-1; y >= 0; y--) { // 
+
+			for(int x = 0; x < SmartAgent.width; x++) {
+
+				int index = x+(y*SmartAgent.width);
+
+				if(this.blacksbool[index] == true) {
+					numBlack += SmartAgent.existenceBonus;;
+					placementBlack += SmartAgent.cellScores.get(SmartAgent.columnTypes[x] + 3)[y];
+
+					int safe = SmartAgent.cellScores.get(SmartAgent.columnTypes[x] + 3)[y] / 2;
+					
+					if(isFoe(x-1, y-1, whitesbool) || isFoe(x+1, y-1, whitesbool)) {
+						safe = 0;
+					}
+
+					safeBlack += safe;
+
+					// we check for a "breakaway", 2x3 rectangle in front of the piece, and give a bonus for that
+					int breakaway = 0;
+
+					if(emptyOrFriend(x-1, y-1, blacksbool, whitesbool)) {
+						breakaway += 1;
+					}
+					if(emptyOrFriend(x, y-1, blacksbool, whitesbool)) {
+						breakaway += 1;
+					}
+					if(emptyOrFriend(x+1, y-1, blacksbool, whitesbool)) {
+						breakaway += 1;
+					}
+					if(emptyOrFriend(x-1, y-2, blacksbool, whitesbool)) {
+						breakaway += 1;
+					}
+					if(emptyOrFriend(x, y-2, blacksbool, whitesbool)) {
+						breakaway += 1;
+					}
+					if(emptyOrFriend(x+1, y-2, blacksbool, whitesbool)) {
+						breakaway += 1;
+					}
+
+					breakawayBlack += breakaway * SmartAgent.cellScores.get(SmartAgent.columnTypes[x] + 3)[y];
+				}
+
+
+			}
+
+		}
+
+		return (numWhite - numBlack) + (placementWhite - placementBlack) + (safeWhite - safeBlack) + (breakawayWhite - breakawayBlack);
+	}
+
+	private boolean isFoe(int x, int y, boolean[] foebool) {
+
+		if(x < 0 || x >= SmartAgent.width || y < 0 || y >= SmartAgent.height) {
+			return false;
+		}
+
+		if(x + (y*SmartAgent.width) < foebool.length) {
+
+			if(foebool[x + (y*SmartAgent.width)] == true) {
+				return true;
+			}
+			
+		}
+
+		return false;
+	}
+
+	private boolean emptyOrFriend(int x, int y, boolean[] friendbool, boolean[] foebool) {
+
+		if(x < 0 || x >= SmartAgent.width || y < 0 || y >= SmartAgent.height) {
+			return true;
+		}
+
+		if(x + (y*SmartAgent.width) < friendbool.length) {
+
+			if(friendbool[x + (y*SmartAgent.width)] == true || foebool[x + (y*SmartAgent.width)] == false) {
+				return true;
+			}
+			
+		}
+
+		return false;
 	}
 
 
@@ -264,6 +372,13 @@ public class BoardState {
 	}
 
 	public String toString() {
-		return "whitePlaying";
+		
+		// could use some more detail if it becomes necessary
+		if(whitePlaying) {
+			return "whitePlaying";
+		} else {
+			return "blackPlaying";
+		}
+
 	}
 }

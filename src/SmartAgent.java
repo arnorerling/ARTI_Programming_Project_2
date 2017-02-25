@@ -6,10 +6,15 @@ public class SmartAgent implements Agent
 	private String role; // the name of this agent's role (white or black)
 	private int playclock; // this is how much time (in seconds) we have before nextAction needs to return a move
 	private boolean myTurn; // whether it is this agent's turn or not
-	private int width, height; // dimensions of the board
+	public static int width, height; // dimensions of the board
+	public static ArrayList<int[]> cellScores;
+	public static int[] columnTypes;
 	private Node rootNode;
 	private boolean isWhite;
 	private int cutoffTime;
+	public static final int incrementInitial = 5;
+	public static final int existenceBonus = 10;
+	public static final int winBonus = Integer.MAX_VALUE - 1;
 	/* irssi
 		init(String role, int playclock) is called once before you have to select the first action. Use it to initialize the agent. role is either "white" or "black" and playclock is the number of seconds after which nextAction must return.
 	*/
@@ -18,13 +23,16 @@ public class SmartAgent implements Agent
 		this.playclock = playclock;
 		myTurn = !role.equals("white");
 		isWhite = role.equals("white");
-		this.width = width;
-		this.height = height;
-		BoardState.width = width;
-		BoardState.height = height;
+		SmartAgent.width = width;
+		SmartAgent.height = height;
 		Node.stateChildren = new HashMap<BoardState, Node[]>();
 		cutoffTime = (int)(playclock * 1000 * 0.2);
 		// TODO: add your own initialization code here
+
+		// initializes cell scores and column types
+		calculateCellScores();
+		calculateColumnTypes();
+		showCellScores();
 
 		// intiializes all points of blacks and whites
 		ArrayList<Point> white = new ArrayList<Point>();
@@ -65,13 +73,6 @@ public class SmartAgent implements Agent
     		
     		this.rootNode.expandChildren();
     		BoardState temp = this.rootNode.state.executeMove(lastMove);
-    		//System.out.println(this.rootNode);
-    		// System.out.println("lastmove map");
-    		// asciiWorld(temp);
-    		// System.out.println("");
-    		// System.out.println("rootNode");
-    		// asciiWorld(this.rootNode.state);
-    		// System.out.println("");
 
     		if(temp == null) {
     			System.out.println("temp became null");
@@ -82,7 +83,6 @@ public class SmartAgent implements Agent
     			if(child.state.equals(temp)){
     				this.rootNode = child;
     				System.out.println("assigned new root after other played moved");
-    				//this.rootNode.parent = null;
     				break;
     			}
     		}
@@ -109,7 +109,7 @@ public class SmartAgent implements Agent
 
 				try {
 					
-					Thread.sleep(500);
+					Thread.sleep(100);
 					if(abt.isDead()) {
 						break;
 					}
@@ -134,16 +134,15 @@ public class SmartAgent implements Agent
 			if(abt.getNextRoot() == null) {
 				System.out.println("nextRoot became null");
 			}
-				
-			System.out.println(this.rootNode.value);
+
 			this.rootNode = abt.getNextRoot();
 			moveToTake = this.rootNode.moveTo;
 
 			//this.rootNode.parent = null;
 			System.out.println("Value found was: " + this.rootNode.value);
 			System.out.println("States Generated: " + abt.getStatesGenerated());
-			System.out.println("States Examined: " + abt.getStatesExamined());
-			System.out.println("Nodes Generated: " + BoardState.numGenerated);
+			System.out.println("Nodes Examined: " + abt.getNodesExamined());
+			System.out.println("All States Generated So Far: " + BoardState.numGenerated);
 			System.out.println("HashMap size: " + Node.stateChildren.size());
 
 			t = null;
@@ -158,38 +157,6 @@ public class SmartAgent implements Agent
 		}
 	}
 
-	
-
-	// public int AlphaBeta(int depth, Node n, int alpha, int beta) {
-
-	// 	if(n.state.isGoal() || depth <= 0) {
-	// 		System.out.println("EVALUATING" +  evaluate(n));
-	// 		return evaluate(n);
-	// 	}
-	// 	int bestValue = Integer.MIN_VALUE+1;
-	// 	n.expandChildren();
-	// 	int value;
-	// 	for(Node successor : n.children) {
-	// 		value = -AlphaBeta(depth-1, successor, -beta, -alpha);
-	// 		bestValue = Math.max(value, bestValue);
-
-	// 		successor.value = value;
-
-	// 		if(bestValue > alpha) {
-	// 			alpha = bestValue;
-	// 			//System.out.println("I am at depth " + depth + ", alpha " + alpha + ", beta " + beta);
-	// 			if(alpha >= beta){
-	// 				break;
-	// 			}
-	// 		} else {
-	// 			//System.out.println("I am at depth " + depth + ", alpha " + alpha + ", beta " + beta);
-	// 		}
-
-	// 	}
-
-	// 	return bestValue;
-	// }
-
 	private int evaluate(Node n){
 		if((n.state.whitePlaying && isWhite) || (!n.state.whitePlaying && !isWhite)) {
 			return n.state.evaluate();
@@ -203,12 +170,12 @@ public class SmartAgent implements Agent
 
 			for(int j = 0; j < width; j++) {
 
-				if(state.whitesbool[j+((i-1)* this.width)]) {
+				if(state.whitesbool[j+((i-1)* SmartAgent.width)]) {
 					System.out.print("W");
 					continue;
 				}
 
-				if(state.blacksbool[j+((i-1)* this.width)]) {
+				if(state.blacksbool[j+((i-1)* SmartAgent.width)]) {
 					System.out.print("B");
 					continue;
 				}
@@ -216,6 +183,112 @@ public class SmartAgent implements Agent
 				System.out.print("_");
 			}
 
+			System.out.println("");
+		}
+	}
+
+	private void calculateCellScores() {
+		int[] white0 = new int[SmartAgent.height];
+		int[] white1 = new int[SmartAgent.height];
+		int[] white2 = new int[SmartAgent.height];
+		int[] black0 = new int[SmartAgent.height];
+		int[] black1 = new int[SmartAgent.height];
+		int[] black2 = new int[SmartAgent.height];
+		int increment = SmartAgent.incrementInitial;
+
+		for(int i = 0; i < SmartAgent.height; i++) {
+
+			if(i == 0) {
+				white1[i] = increment;
+			} else {
+				white1[i] = white1[i-1] + increment;
+			}
+
+			white0[i] = white1[i] - (white1[i] / 4);
+
+			if(i == 0) {
+				white2[i] = white0[i];
+			} else {
+				white2[i] = white1[i];
+			}
+
+			increment += 5;
+		}
+		// adjust home row scores
+		white0[0] = white0[SmartAgent.height / 3];
+		white1[0] = white1[SmartAgent.height / 3];
+		white2[0] = white0[0];
+		
+		// make goal row scores equal
+		white0[SmartAgent.height-1] = white1[SmartAgent.height-1];
+
+		for(int i = 0; i < SmartAgent.height; i++) {
+			black0[i] = white0[SmartAgent.height-i-1];
+			black1[i] = white1[SmartAgent.height-i-1];
+			black2[i] = white2[SmartAgent.height-i-1];
+		}
+
+		SmartAgent.cellScores = new ArrayList<int[]>();
+		SmartAgent.cellScores.add(white0);
+		SmartAgent.cellScores.add(white1);
+		SmartAgent.cellScores.add(white2);
+		SmartAgent.cellScores.add(black0);
+		SmartAgent.cellScores.add(black1);
+		SmartAgent.cellScores.add(black2);
+	}
+
+	private void calculateColumnTypes() {
+
+		if(SmartAgent.width == 2) {
+			SmartAgent.columnTypes = new int[]{1, 1};
+		}
+		if(SmartAgent.width == 3) {
+			SmartAgent.columnTypes = new int[]{0, 1, 0};
+		}
+		if(SmartAgent.width == 4) {
+			SmartAgent.columnTypes = new int[]{0, 1, 1, 0};
+		}
+		if(SmartAgent.width == 5) {
+			SmartAgent.columnTypes = new int[]{0, 1, 2, 1, 0};
+		}
+		if(SmartAgent.width == 6) {
+			SmartAgent.columnTypes = new int[]{0, 1, 2, 2, 1, 0};
+		}
+		if(SmartAgent.width == 7) {
+			SmartAgent.columnTypes = new int[]{0, 1, 1, 2, 1, 1, 0};
+		}
+		if(SmartAgent.width == 8) {
+			SmartAgent.columnTypes = new int[]{0, 1, 1, 2, 2, 1, 1, 0};
+		}
+		if(SmartAgent.width == 9) {
+			SmartAgent.columnTypes = new int[]{0, 1, 1, 2, 1, 2, 1, 1, 0};
+		}
+		if(SmartAgent.width == 10) {
+			SmartAgent.columnTypes = new int[]{0, 1, 1, 2, 1, 1, 2, 1, 1, 0};
+		}
+
+	}
+
+	private void showCellScores() {
+
+		System.out.println("White Scores:");
+		for(int y = SmartAgent.height-1; y >= 0; y--) {
+			for(int x = 0; x < SmartAgent.width; x++) {
+
+				System.out.printf("%3d ", SmartAgent.cellScores.get(SmartAgent.columnTypes[x])[y]);
+
+			}
+			System.out.println("");
+		}
+
+		System.out.println("");
+		System.out.println("Black Scores:");
+		for(int y = SmartAgent.height-1; y >= 0; y--) {
+			for(int x = 0; x < SmartAgent.width; x++) {
+
+				System.out.printf("%3d ", SmartAgent.cellScores.get(SmartAgent.columnTypes[x] + 3)[y]);
+
+			}
 			System.out.println("");
 		}
 	}

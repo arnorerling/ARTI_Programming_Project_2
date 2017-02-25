@@ -1,10 +1,13 @@
+import java.util.Arrays;
+import java.util.Collections;
+
 public class AlphaBetaThread implements Runnable {
 
 	private Node rootNode;
 	private Node nextRoot;
 	private boolean isWhite;
 	private int statesGenerated;
-	private int statesExamined;
+	private int nodesExamined;
 	private boolean isDead;
 
 	public AlphaBetaThread(Node _rootNode, boolean _isWhite) {
@@ -12,7 +15,7 @@ public class AlphaBetaThread implements Runnable {
 		this.nextRoot = null;
 		this.isWhite = _isWhite;
 		this.statesGenerated = 0;
-		this.statesExamined = 0;
+		this.nodesExamined = 0;
 		this.isDead = false;
 	}
 
@@ -23,21 +26,20 @@ public class AlphaBetaThread implements Runnable {
 		while(true) {
 
 			try {
-				//System.out.println("TIME LEFT: " + (timeTilReturn - currentTime));
-				// if(currentDepth > 50) {// if have more time than what last iteration took * 2 just quit out.
-				// 	System.out.println("iterative deepening stopped at depth " + currentDepth);
-				// 	break;
-				// } 
+
 				this.rootNode.value = AlphaBeta(this.rootNode, currentDepth, Integer.MIN_VALUE+1, Integer.MAX_VALUE-1, this.isWhite);
-				
-				//System.out.println("FINISHED A ITERATION IN ITERATIVE DEEPENING D: "+currentDepth);
-				//System.out.println("LAST RUNTIME: " + lastRunTime);
+
 				for(Node child : this.rootNode.children) {
 					if(child.value == this.rootNode.value) {
 						this.nextRoot = child;
 						System.out.println("at depth: " + currentDepth);
 						break;
 					}
+				}
+
+				if(currentDepth > 50) {
+					break;
+					// Not going to hit this depth in our current maps
 				}
 				currentDepth += 1;
 
@@ -59,19 +61,17 @@ public class AlphaBetaThread implements Runnable {
 
 	public int AlphaBeta(Node n, int depth, int alpha, int beta, boolean maxPlayer) throws InterruptedException {
 
-		this.statesExamined += 1;
+		this.nodesExamined += 1;
 
 		if(Thread.currentThread().isInterrupted()) {
 			throw new InterruptedException("AlphaBeta stopping, out of time!");
 		}
 
 		if(depth == 0) {
-			//System.out.println("depth has reached zero");
 			return n.state.evaluation;
 		}
 
 		if(n.state.isGoal()) {
-			//System.out.println("state goal reached");
 			return n.state.evaluation;
 		}
 
@@ -79,13 +79,12 @@ public class AlphaBetaThread implements Runnable {
 
 		if(maxPlayer) {
 
-			//System.out.println("maxplayer");
-
 			v = Integer.MIN_VALUE + 10;
 			if(!n.expandChildren()) {
 				this.statesGenerated += n.children.length;
 			}
 
+			Arrays.sort(n.children, Collections.reverseOrder());
 			for(Node s : n.children) {
 
 				s.value = AlphaBeta(s, depth-1, alpha, beta, false);
@@ -101,13 +100,12 @@ public class AlphaBetaThread implements Runnable {
 
 		} else {
 
-			//System.out.println("minplayer");
-
 			v = Integer.MAX_VALUE-10;
 			if(!n.expandChildren()) {
 				this.statesGenerated += n.children.length;
 			}
 
+			Arrays.sort(n.children);
 			for(Node s : n.children) {
 
 				s.value = AlphaBeta(s, depth-1, alpha, beta, true);
@@ -133,8 +131,8 @@ public class AlphaBetaThread implements Runnable {
 		return this.statesGenerated;
 	}
 
-	public int getStatesExamined() {
-		return this.statesExamined;
+	public int getNodesExamined() {
+		return this.nodesExamined;
 	}
 
 	public boolean isDead() {
