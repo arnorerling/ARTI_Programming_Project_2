@@ -15,8 +15,9 @@ public class SmartAgent implements Agent
 	public static final int incrementInitial = 5;
 	public static final int existenceBonus = 10;
 	public static final int winBonus = Integer.MAX_VALUE - 1;
-	/* irssi
-		init(String role, int playclock) is called once before you have to select the first action. Use it to initialize the agent. role is either "white" or "black" and playclock is the number of seconds after which nextAction must return.
+	/* 
+		init(String role, int playclock) is called once before you have to select the first action. Use it to initialize the agent.
+		role is either "white" or "black" and playclock is the number of seconds after which nextAction must return.
 	*/
     public void init(String role, int width, int height, int playclock) {
 		this.role = role;
@@ -27,7 +28,6 @@ public class SmartAgent implements Agent
 		SmartAgent.height = height;
 		Node.stateChildren = new HashMap<BoardState, Node[]>();
 		cutoffTime = (int)(playclock * 1000 * 0.2);
-		// TODO: add your own initialization code here
 
 		// initializes cell scores and column types
 		calculateCellScores();
@@ -69,7 +69,6 @@ public class SmartAgent implements Agent
     			roleOfLastPlayer = "black";
     		}
    			System.out.println(roleOfLastPlayer + " moved from " + x1 + "," + y1 + " to " + x2 + "," + y2);
-    		// TODO: 1. update your internal world model according to the action that was just executed
     		
     		this.rootNode.expandChildren();
     		BoardState temp = this.rootNode.state.executeMove(lastMove);
@@ -95,9 +94,6 @@ public class SmartAgent implements Agent
 	
 		myTurn = !myTurn;
 		if (myTurn) {
-			// TODO: 2. run alpha-beta search to determine the best move
-			
-			//for(int i = 1; i < 5; i++) {
 
 			int[] moveToTake = new int[4];
 			long currentTime = System.currentTimeMillis();
@@ -155,13 +151,6 @@ public class SmartAgent implements Agent
 			asciiWorld(this.rootNode.state);
 			return "noop";
 		}
-	}
-
-	private int evaluate(Node n){
-		if((n.state.whitePlaying && isWhite) || (!n.state.whitePlaying && !isWhite)) {
-			return n.state.evaluate();
-		}
-		return -n.state.evaluate();
 	}
 
 	private void asciiWorld(BoardState state) {
@@ -296,7 +285,7 @@ public class SmartAgent implements Agent
 	// is called when the game is over or the match is aborted
 	@Override
 	public void cleanup() {
-		// TODO: cleanup so that the agent is ready for the next match
+		// Cleanup not neaded as init reinitiates everything from scratch.
 	}
 
 }
