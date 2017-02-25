@@ -9,16 +9,13 @@ public class BoardState {
 
 	public boolean[] whitesbool;
 	public boolean[] blacksbool;
-	//public ArrayList<int[]> legalMoves;
 	public int evaluation;
-
 	public boolean whitePlaying;
 
 	public BoardState(boolean[] _whitesbool, boolean[] _blacksbool, boolean _whitePlaying ) {
 		this.whitesbool = _whitesbool;
 		this.blacksbool = _blacksbool;
 		this.whitePlaying = _whitePlaying;
-		//this.legalMoves = this.legalMoves();
 		this.evaluation = this.evaluate();
 		BoardState.numGenerated += 1;
 		return;
