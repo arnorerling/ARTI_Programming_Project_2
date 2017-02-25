@@ -9,6 +9,7 @@ public class BoardState {
 
 	public boolean[] whitesbool;
 	public boolean[] blacksbool;
+	public ArrayList<int[]> legalMovesCache;
 	public int evaluation;
 	public boolean whitePlaying;
 
@@ -16,6 +17,7 @@ public class BoardState {
 		this.whitesbool = _whitesbool;
 		this.blacksbool = _blacksbool;
 		this.whitePlaying = _whitePlaying;
+		this.legalMovesCache = null;
 		this.evaluation = this.evaluate();
 		BoardState.numGenerated += 1;
 		return;
@@ -58,7 +60,11 @@ public class BoardState {
 
 	public ArrayList<int[]> legalMoves() {
 
-		ArrayList<int[]> legalMoves = new ArrayList<int[]>();
+		if(this.legalMovesCache != null) {
+			return this.legalMovesCache;
+		}
+
+		ArrayList<int[]> newLegalMoves = new ArrayList<int[]>();
 		int y;
 		int x;
 
@@ -74,7 +80,7 @@ public class BoardState {
 						move[1] = y+1;
 						move[2] = x+1;
 						move[3] = y+2;
-						legalMoves.add(move);
+						newLegalMoves.add(move);
 					}
 
 					if(x != SmartAgent.width-1) {
@@ -84,7 +90,7 @@ public class BoardState {
 							move[1] = y+1;
 							move[2] = x+2;
 							move[3] = y+2;
-							legalMoves.add(move);
+							newLegalMoves.add(move);
 						}
 					}
 
@@ -95,7 +101,7 @@ public class BoardState {
 							move[1] = y+1;
 							move[2] = x;
 							move[3] = y+2;
-							legalMoves.add(move);
+							newLegalMoves.add(move);
 						}
 					}
 				}
@@ -115,7 +121,7 @@ public class BoardState {
 						move[1] = y+1;
 						move[2] = x+1;
 						move[3] = y;
-						legalMoves.add(move);
+						newLegalMoves.add(move);
 					}
 					if(x != SmartAgent.width-1) {
 						if(whitesbool[(x+1)+((y-1) * SmartAgent.width)]) {
@@ -124,7 +130,7 @@ public class BoardState {
 							move[1] = y+1;
 							move[2] = x+2;
 							move[3] = y;
-							legalMoves.add(move);
+							newLegalMoves.add(move);
 						}
 					}
 					if(x != 0) {
@@ -134,7 +140,7 @@ public class BoardState {
 							move[1] = y+1;
 							move[2] = x;
 							move[3] = y;
-							legalMoves.add(move);
+							newLegalMoves.add(move);
 						}
 					}
 					
@@ -142,7 +148,9 @@ public class BoardState {
 				}
 			}
 		}
-		return legalMoves;
+
+		this.legalMovesCache = newLegalMoves;
+		return this.legalMovesCache;
 	}
 
 	public BoardState executeMove(int[] move) {
@@ -312,9 +320,17 @@ public class BoardState {
 
 	private boolean emptyOrFriend(int x, int y, boolean[] friendbool, boolean[] foebool) {
 
-		if(x < 0 || x >= SmartAgent.width || y < 0 || y >= SmartAgent.height) {
+		// if(x < 0 || x >= SmartAgent.width || y < 0 || y >= SmartAgent.height) {
+		// 	return true;
+		// }
+		if(x < 0 || x >= SmartAgent.width) {
+			return false;
+		}
+
+		if(y < 0 || y >= SmartAgent.height) {
 			return true;
 		}
+
 
 		if(x + (y*SmartAgent.width) < friendbool.length) {
 
@@ -378,4 +394,5 @@ public class BoardState {
 		}
 
 	}
+
 }

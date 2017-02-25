@@ -1,33 +1,38 @@
 import java.util.ArrayList;
 import java.util.HashMap;
-public class SmartAgent implements Agent
-{
 
-	private String role; // the name of this agent's role (white or black)
-	private int playclock; // this is how much time (in seconds) we have before nextAction needs to return a move
-	private boolean myTurn; // whether it is this agent's turn or not
+public class SmartAgent implements Agent, Thread.UncaughtExceptionHandler
+{
 	public static int width, height; // dimensions of the board
 	public static ArrayList<int[]> cellScores;
 	public static int[] columnTypes;
-	private Node rootNode;
-	private boolean isWhite;
-	private int cutoffTime;
 	public static final int incrementInitial = 5;
 	public static final int existenceBonus = 10;
 	public static final int winBonus = Integer.MAX_VALUE - 1;
-	/* 
-		init(String role, int playclock) is called once before you have to select the first action. Use it to initialize the agent.
-		role is either "white" or "black" and playclock is the number of seconds after which nextAction must return.
+
+	private Node rootNode;
+	private boolean isWhite;
+	private int cutoffTime;
+	private String role; // the name of this agent's role (white or black)
+	private int playclock; // this is how much time (in seconds) we have before nextAction needs to return a move
+	private boolean myTurn; // whether it is this agent's turn or not
+	private boolean threadBreak = false;
+
+	/*
+		init(String role, int playclock) is called once before you have to select the first action. Use it to initialize the agent. role is either "white" or "black" and playclock is the number of seconds after which nextAction must return.
 	*/
     public void init(String role, int width, int height, int playclock) {
 		this.role = role;
 		this.playclock = playclock;
 		myTurn = !role.equals("white");
 		isWhite = role.equals("white");
+
+		// TODO: add your own initialization code here
 		SmartAgent.width = width;
 		SmartAgent.height = height;
 		Node.stateChildren = new HashMap<BoardState, Node[]>();
-		cutoffTime = (int)(playclock * 1000 * 0.2);
+		BoardState.numGenerated = 0;
+		cutoffTime = (int)(playclock * 1000 * 0.3);
 
 		// initializes cell scores and column types
 		calculateCellScores();
@@ -45,13 +50,12 @@ public class SmartAgent implements Agent
 			blacksbool[i + (width * (height-1))] = true;
 			blacksbool[i + ((width) * (height-2))] = true;
 		}
+
 		// pass in true because whiteplaying starts as true
-		System.out.println("init1");
 		this.rootNode = new Node(0, null, new BoardState(whitesbool, blacksbool, true));
-		System.out.println("init2");
     }
 
-	// lastMove is null the first time nextAction gets called (in the initial state)
+    // lastMove is null the first time nextAction gets called (in the initial state)
     // otherwise it contains the coordinates x1,y1,x2,y2 of the move that the last player did
     public String nextAction(int[] lastMove) {
 
@@ -69,19 +73,20 @@ public class SmartAgent implements Agent
     			roleOfLastPlayer = "black";
     		}
    			System.out.println(roleOfLastPlayer + " moved from " + x1 + "," + y1 + " to " + x2 + "," + y2);
-    		
+	
+    		// TODO: 1. update your internal world model according to the action that was just executed
     		this.rootNode.expandChildren();
-    		BoardState temp = this.rootNode.state.executeMove(lastMove);
+    		BoardState nextState = this.rootNode.state.executeMove(lastMove);
 
-    		if(temp == null) {
-    			System.out.println("temp became null");
+    		if(nextState == null) {
+    			System.out.println("Uh-oh! nextState became null. Opponents move is unknown.");
     		}
 
     		for(Node child: this.rootNode.children)
     		{
-    			if(child.state.equals(temp)){
+    			if(child.state.equals(nextState)){
     				this.rootNode = child;
-    				System.out.println("assigned new root after other played moved");
+    				System.out.println("Assigning new root after opponent moved.");
     				break;
     			}
     		}
@@ -91,29 +96,32 @@ public class SmartAgent implements Agent
     	}
 		
     	// update turn (above that line it myTurn is still for the previous state)
-	
 		myTurn = !myTurn;
 		if (myTurn) {
 
+			// TODO: 2. run alpha-beta search to determine the best move
 			int[] moveToTake = new int[4];
 			long currentTime = System.currentTimeMillis();
 			AlphaBetaThread abt = new AlphaBetaThread(this.rootNode, isWhite);
 			Thread t = new Thread(abt);
 
 			t.start();
+			t.setUncaughtExceptionHandler(this);
 			while(currentTime + cutoffTime < timeTilReturn) {
 
 				try {
 					
-					Thread.sleep(100);
-					if(abt.isDead()) {
+					Thread.sleep(50);
+					if(abt.isDead() || threadBreak) {
 						break;
 					}
 
 				}catch(InterruptedException e) {
 					// Someone woke us up during sleep, that's OK
+				} catch(OutOfMemoryError e) {
+					System.out.println("Caught OutOfMemoryError from AlphaBetaThread. " + e.getMessage());
 				} catch(Exception e) {
-					System.out.println("Caught an exception we weren't expecting: " + e.getClass().getCanonicalName());
+					System.out.println("Caught an exception we weren't expecting from AlphaBetaThread: " + e.getClass().getCanonicalName());
 					e.printStackTrace();
 				}
 
@@ -143,6 +151,7 @@ public class SmartAgent implements Agent
 
 			t = null;
 			abt = null;
+			threadBreak = false;
 			Node.stateChildren.clear();
 
 			return "(move "+moveToTake[0]+" "+moveToTake[1]+" "+moveToTake[2]+" "+moveToTake[3]+")";
@@ -151,6 +160,19 @@ public class SmartAgent implements Agent
 			asciiWorld(this.rootNode.state);
 			return "noop";
 		}
+	}
+
+	@Override
+    public void uncaughtException(Thread thread, Throwable t) {
+        System.out.println("caught UncaughtException from ABThread");
+        this.threadBreak = true;
+	}
+
+	private int evaluate(Node n){
+		if((n.state.whitePlaying && isWhite) || (!n.state.whitePlaying && !isWhite)) {
+			return n.state.evaluate();
+		}
+		return -n.state.evaluate();
 	}
 
 	private void asciiWorld(BoardState state) {

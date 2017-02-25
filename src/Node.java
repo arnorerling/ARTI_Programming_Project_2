@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +12,8 @@ public class Node implements Comparable {
 	int[] moveTo;
 	BoardState state;
 	Node[] children;
+
+	private boolean value_set = false;
 	//Boolean alreadyExpanded;
 
 	public Node (int _value, int[] _moveTo, BoardState _state) {
@@ -33,10 +36,10 @@ public class Node implements Comparable {
 		this.children = Node.stateChildren.get(this.state);
 
 		if(children == null) {
-			ArrayList<int[]> legalMoves = this.state.legalMoves();
-			this.children = new Node[legalMoves.size()];
-			for(int i = 0; i < legalMoves.size(); i++) {
-				children[i] = new Node(0, legalMoves.get(i), this.state.executeMove(legalMoves.get(i)));
+			this.state.legalMoves();
+			this.children = new Node[this.state.legalMovesCache.size()];
+			for(int i = 0; i < this.state.legalMovesCache.size(); i++) {
+				this.children[i] = new Node(0, this.state.legalMovesCache.get(i), this.state.executeMove(this.state.legalMovesCache.get(i)));
 			}
 			Node.stateChildren.put(this.state, this.children);
 			return false;
@@ -45,10 +48,23 @@ public class Node implements Comparable {
 		return true;
 	}
 
+	public void setValue(int _value) {
+		value_set = true;
+		this.value = _value;
+	}
+
 	@Override
 	public int compareTo(Object obj) {
 		Node other = (Node) obj;
 
+		if(this.value_set && other.value_set) {
+			return Integer.compare(this.value, other.value);
+		}
+
+		if(this.value_set) {
+			return Integer.compare(this.value, other.state.evaluation);
+		}
+		
 		return Integer.compare(this.state.evaluation, other.state.evaluation);
 	}
 
