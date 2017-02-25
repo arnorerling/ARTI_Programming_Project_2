@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <project name="ARTI-lab1" basedir="." default="help">
 
-	<property name="student" value="James, Siggi, Saevar" />
+	<property name="student" value="James_Siggi_Saevar" />
 	<property name="mainclass" value="Main" />
 
 	<property name="lab" value="2" />
